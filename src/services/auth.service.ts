@@ -156,5 +156,14 @@ export const authService = {
     if (cognitoUser) {
       cognitoUser.signOut();
     }
+  },
+
+  getCurrentSession: async () => {
+    try {
+      const session = await authService.getSession();
+      return session?.isValid() || false;
+    } catch (error) {
+      return false;
+    }
   }
 };

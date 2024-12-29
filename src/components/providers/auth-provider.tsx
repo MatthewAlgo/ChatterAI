@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CognitoUser } from 'amazon-cognito-identity-js';
 import { authService } from '../../services/auth.service';
 import { useNotification } from './notification-provider';
+import { useDatabase } from './database-provider';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -27,6 +28,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isVerified, setIsVerified] = useState(true);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
   const { showNotification } = useNotification();
+  const { connect, disconnect } = useDatabase();
+
+  useEffect(() => {
+    // Check for stored auth state on mount
+    const storedAuth = localStorage.getItem('authState');
+    if (storedAuth) {
+      const { isAuth, attributes } = JSON.parse(storedAuth);
+      setIsAuthenticated(isAuth);
+      setUserAttributes(attributes);
+      if (isAuth) {
+        connect(); // Connect to database if user is authenticated on mount
+      }
+    }
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
@@ -35,6 +50,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsAuthenticated(true);
       const attributes = await authService.getUserAttributes(result.user);
       setUserAttributes(attributes);
+      
+      // Store auth state and connect to database
+      localStorage.setItem('authState', JSON.stringify({
+        isAuth: true,
+        attributes: attributes
+      }));
+      
+      await connect(); // Connect to database after successful login
       showNotification('Login successful', 'success');
     } catch (error: any) {
       if (error.name === 'UserNotConfirmedException') {
@@ -49,9 +72,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     try {
       await authService.signOut();
+      await disconnect(); // Disconnect from database before logout
       setIsAuthenticated(false);
       setUser(null);
       setUserAttributes(null);
+      
+      // Clear stored auth state
+      localStorage.removeItem('authState');
+      
       showNotification('Logged out successfully', 'success');
     } catch (error: any) {
       showNotification(error.message || 'Logout failed', 'error');

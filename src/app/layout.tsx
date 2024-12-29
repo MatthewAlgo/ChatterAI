@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "../components/providers/auth-provider";
 import { NotificationProvider } from "../components/providers/notification-provider";
+import { DatabaseProvider } from "../components/providers/database-provider";
 import localFont from "next/font/local";
 import "../styles/globals.css";
 
@@ -44,9 +45,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${timesNewRoman.variable} antialiased`}
       >
         <NotificationProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <DatabaseProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </DatabaseProvider>
         </NotificationProvider>
       </body>
     </html>
