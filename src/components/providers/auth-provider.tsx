@@ -5,6 +5,7 @@ import { CognitoUser } from 'amazon-cognito-identity-js';
 import { authService } from '../../services/auth.service';
 import { useNotification } from './notification-provider';
 import { useDatabase } from './database-provider';
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -29,6 +30,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
   const { showNotification } = useNotification();
   const { connect, disconnect } = useDatabase();
+  const router = useRouter();
 
   useEffect(() => {
     // Check for stored auth state on mount
@@ -80,6 +82,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Clear stored auth state
       localStorage.removeItem('authState');
       
+      router.push('/'); // Add this line to redirect after logout
       showNotification('Logged out successfully', 'success');
     } catch (error: any) {
       showNotification(error.message || 'Logout failed', 'error');

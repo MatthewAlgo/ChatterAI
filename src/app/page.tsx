@@ -11,7 +11,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Give a small delay to prevent flash of content
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 100);
@@ -21,27 +20,25 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <main>
+    <div className="flex flex-col min-h-screen bg-slate-950">
       <Header />
       {isAuthenticated ? (
-        <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen font-[family-name:var(--font-geist-sans)]">
-          <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-            <div className='px-4 py-2 text-white sm:px-8 sm:py-3'>
-              <ChatPage/>
-            </div>
-          </main>
+        <div className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
+          <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700/30 shadow-xl overflow-hidden">
+            <ChatPage />
+          </div>
         </div>
       ) : (
         <Homepage />
       )}
       <Footer />
-    </main>
+    </div>
   );
 }
