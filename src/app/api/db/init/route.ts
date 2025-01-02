@@ -3,6 +3,17 @@ import sql from 'mssql';
 import { sqlConfig } from '@/config/azure-db-config';
 
 const createTablesQuery = `
+-- Create Users table
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Users')
+BEGIN
+    CREATE TABLE Users (
+        userId NVARCHAR(64) PRIMARY KEY,
+        name NVARCHAR(255) NOT NULL,
+        email NVARCHAR(255) NOT NULL UNIQUE,
+        createdAt DATETIME DEFAULT GETDATE()
+    );
+END;
+
 -- Create UserChatNames table
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'UserChatNames')
 BEGIN
@@ -49,6 +60,34 @@ BEGIN
 END;
 `;
 
+const dropTablesQuery = `
+-- Drop all tables
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Users')
+BEGIN
+    DROP TABLE Users;
+END;
+
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'UserChatNames')
+BEGIN
+    DROP TABLE UserChatNames;
+END;
+
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'ChatNames')
+BEGIN
+    DROP TABLE ChatNames;
+END;
+
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'ChatNamesConversations')
+BEGIN
+    DROP TABLE ChatNamesConversations;
+END;
+
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'Conversations')
+BEGIN
+    DROP TABLE Conversations;
+END;
+`;
+
 export async function POST() {
     try {
         const pool = await sql.connect(sqlConfig);
@@ -63,6 +102,24 @@ export async function POST() {
         return NextResponse.json({ 
             status: 'error', 
             message: 'Failed to initialize database' 
+        }, { status: 500 });
+    }
+}
+
+export async function DELETE() {
+    try {
+        const pool = await sql.connect(sqlConfig);
+        await pool.request().query(dropTablesQuery);
+        
+        return NextResponse.json({ 
+            status: 'success', 
+            message: 'Database tables deleted successfully' 
+        });
+    } catch (error) {
+        console.error('Failed to delete database tables:', error);
+        return NextResponse.json({ 
+            status: 'error', 
+            message: 'Failed to delete database tables' 
         }, { status: 500 });
     }
 }

@@ -6,6 +6,7 @@ import { FaSignInAlt } from 'react-icons/fa';
 import { useAuth } from '../../providers/auth-provider';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { userService } from '@/services/user.service';
 
 export default function RegisterForm() {
     const [email, setEmail] = useState('');
@@ -18,15 +19,35 @@ export default function RegisterForm() {
 
     async function handleSubmit(event: React.FormEvent) {
         event.preventDefault();
+        setError('');
+
+        // Client-side validation
+        if (!email || !password || !name) {
+            setError('All fields are required');
+            return;
+        }
+
+        if (password.length < 8) {
+            setError('Password must be at least 8 characters long');
+            return;
+        }
+
         if (password !== confirmPassword) {
             setError('Passwords do not match');
             return;
         }
+
         try {
+            // Create user in Cognito
             await register(email, password, name);
+            
+            // Create user in our database
+            await userService.createUser(name, email, password);
+            
             router.push('/auth/verify');
-        } catch (err) {
-            setError('Registration failed. Please try again.');
+        } catch (err: any) {
+            console.error('Registration error:', err);
+            setError(err.message || 'Registration failed. Please try again.');
         }
     }
 

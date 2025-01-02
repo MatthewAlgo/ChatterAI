@@ -12,8 +12,12 @@ const nextConfig: NextConfig = {
     AZURE_DB_PASSWORD: process.env.AZURE_DB_PASSWORD,
     AZURE_DB_NAME: process.env.AZURE_DB_NAME,
     AZURE_DB_SERVER: process.env.AZURE_DB_SERVER,
+
+    // Azure OpenAI Configuration
+    NEXT_PUBLIC_AZURE_OPENAI_API_KEY: process.env.NEXT_PUBLIC_AZURE_OPENAI_API_KEY,
+    NEXT_PUBLIC_AZURE_OPENAI_ENDPOINT: process.env.NEXT_PUBLIC_AZURE_OPENAI_ENDPOINT,
+    NEXT_PUBLIC_AZURE_OPENAI_DEPLOYMENT_NAME: process.env.NEXT_PUBLIC_AZURE_OPENAI_DEPLOYMENT_NAME,
   },
-  // Add any other Next.js config options here
 };
 
 export default nextConfig;

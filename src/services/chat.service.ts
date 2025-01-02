@@ -16,13 +16,13 @@ export const chatService = {
             BEGIN TRANSACTION;
             
             INSERT INTO ChatNames (chatId) 
-            VALUES ('${chatId}');
+            VALUES (@chatId);
             
             INSERT INTO UserChatNames (userId, chatId) 
-            VALUES ('${userId}', '${chatId}');
+            VALUES (@userId, @chatId);
             
             COMMIT;
-        `);
+        `, { chatId, userId });
         
         return chatId;
     },
@@ -34,21 +34,30 @@ export const chatService = {
             BEGIN TRANSACTION;
             
             INSERT INTO Conversations (convoId, convoPerson, convoContent) 
-            VALUES ('${convoId}', '${sender}', '${content}');
+            VALUES (@convoId, @sender, @content);
             
             INSERT INTO ChatNamesConversations (chatId, convoId) 
-            VALUES ('${chatId}', '${convoId}');
+            VALUES (@chatId, @convoId);
+            
+            UPDATE ChatNames 
+            SET updatedAt = GETUTCDATE()
+            WHERE chatId = @chatId;
             
             COMMIT;
-        `);
+        `, {
+            convoId,
+            sender,
+            content,
+            chatId
+        });
     },
 
     async updateChatName(chatId: string, newName: string): Promise<void> {
         await azureQueryService.executeQuery(`
             UPDATE ChatNames 
-            SET chatName = '${newName}' 
-            WHERE chatId = '${chatId}'
-        `);
+            SET chatName = @newName 
+            WHERE chatId = @chatId
+        `, { chatId, newName });
     },
 
     async getChatHistory(chatId: string): Promise<ChatMessage[]> {
@@ -56,15 +65,15 @@ export const chatService = {
             SELECT c.convoId, c.convoContent, c.convoPerson, c.convoTimestamp
             FROM Conversations c
             JOIN ChatNamesConversations cnc ON c.convoId = cnc.convoId
-            WHERE cnc.chatId = '${chatId}'
+            WHERE cnc.chatId = @chatId
             ORDER BY c.convoTimestamp ASC
-        `);
+        `, { chatId });
         
         return result.recordset.map((record: any) => ({
             convoId: record.convoId,
             content: record.convoContent,
             sender: record.convoPerson,
-            timestamp: record.convoTimestamp
+            timestamp: new Date(record.convoTimestamp)
         }));
     }
 };
