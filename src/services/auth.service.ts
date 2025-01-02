@@ -1,5 +1,6 @@
 import { CognitoUser, AuthenticationDetails, CognitoUserPool, CognitoUserAttribute, CognitoUserSession } from 'amazon-cognito-identity-js';
 import { awsConfig } from '../config/aws-config';
+import { userService } from './user.service';
 
 interface CognitoError extends Error {
   name: string;
@@ -34,9 +35,18 @@ interface SignInResult {
 
 export const authService = {
   async signUp(email: string, password: string, name: string) {
+    // Input validation
+    if (!email || !password || !name) {
+      throw new Error('Email, password, and name are required');
+    }
+    
+    if (password.length < 8) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+
     const userPool = getUserPool();
     console.log('Signing up:', { email, name });
-    console.log('User Pool:', userPool);
+    
     return new Promise((resolve, reject) => {
       const attributeList = [
         new CognitoUserAttribute({
@@ -51,7 +61,15 @@ export const authService = {
 
       userPool.signUp(email, password, attributeList, [], (err, result) => {
         if (err) {
-          reject(err);
+          console.error('Cognito SignUp Error:', err);
+          // Handle specific Cognito error cases
+          if (err.name === 'InvalidParameterException') {
+            reject(new Error('Invalid email or password format'));
+          } else if (err.name === 'UsernameExistsException') {
+            reject(new Error('An account with this email already exists'));
+          } else {
+            reject(new Error('Registration failed: ' + err.message));
+          }
           return;
         }
         resolve(result);
@@ -73,7 +91,15 @@ export const authService = {
       });
 
       cognitoUser.authenticateUser(authenticationDetails, {
-        onSuccess: (session) => {
+        onSuccess: async (session) => {
+          // Get user attributes after successful login
+          const attributes = await this.getUserAttributes(cognitoUser);
+          const name = attributes['name'];
+          
+          // Generate and store user hash
+          const userHash = userService.generateUserId(name, email, password);
+          localStorage.setItem('userHash', userHash);
+          
           resolve({ user: cognitoUser, session });
         },
         onFailure: (err: CognitoError) => {
@@ -150,11 +176,25 @@ export const authService = {
     });
   },
 
+  getUserHash(): string | null {
+    return localStorage.getItem('userHash');
+  },
+
   async signOut(): Promise<void> {
     const userPool = getUserPool();
     const cognitoUser = userPool.getCurrentUser();
     if (cognitoUser) {
+      localStorage.removeItem('userHash');
       cognitoUser.signOut();
+    }
+  },
+
+  getCurrentSession: async () => {
+    try {
+      const session = await authService.getSession();
+      return session?.isValid() || false;
+    } catch (error) {
+      return false;
     }
   }
 };

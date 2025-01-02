@@ -13,7 +13,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const showNotification = (message: string, type: 'success' | 'error') => {
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000); // Hide after 3 seconds
+    setTimeout(() => setNotification(null), 3000);
   };
 
   return (

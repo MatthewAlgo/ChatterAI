@@ -1,38 +1,112 @@
-# ChatterAI
+# ChatterAI - AI Chat Platform
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+ChatterAI is a modern web application that combines AWS Cognito authentication with Azure OpenAI and Azure SQL Database to provide a secure and scalable AI chat experience.
 
-## Getting Started
+## Features
 
-First, run the development server:
+- **Secure Authentication**: User management through AWS Cognito
+- **AI Chat**: Powered by Azure OpenAI Services
+- **Persistent Storage**: Chat history stored in Azure SQL Database
+- **Modern UI**: Built with Next.js and TailwindCSS
+- **Real-time Updates**: Dynamic chat interface with instant responses
+
+## Prerequisites
+
+- Node.js 18.x or higher
+- AWS Account with Cognito User Pool
+- Azure Account with OpenAI and SQL Database services
+- npm or yarn package manager
+
+## Environment Variables
+
+Create a `.env.local` file in the root directory with:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# AWS Cognito
+NEXT_PUBLIC_AWS_REGION=your-region
+NEXT_PUBLIC_AWS_USER_POOL_ID=your-user-pool-id
+NEXT_PUBLIC_AWS_USER_POOL_CLIENT_ID=your-client-id
+
+# Azure OpenAI
+NEXT_PUBLIC_AZURE_OPENAI_API_KEY=your-api-key
+NEXT_PUBLIC_AZURE_OPENAI_ENDPOINT=your-endpoint
+NEXT_PUBLIC_AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment-name
+
+# Azure SQL Database
+AZURE_DB_SERVER=your-server.database.windows.net
+AZURE_DB_NAME=your-database
+AZURE_DB_USER=your-username
+AZURE_DB_PASSWORD=your-password
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/chatter-ai.git
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Install dependencies
+cd chatter-ai
+npm install
 
-## Learn More
+# Initialize the database
+npm run db:init
 
-To learn more about Next.js, take a look at the following resources:
+# Start the development server
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Database Management
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# Create database tables
+npm run db:init
 
-## Deploy on Vercel
+# Drop all tables (caution!)
+npm run db:drop
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/             # Next.js app router
+├── components/      # React components
+├── config/         # Configuration files
+├── services/       # Service layer
+│   ├── auth.service.ts        # AWS Cognito auth
+│   ├── azure-openai.service.ts # Azure OpenAI integration
+│   ├── chat.service.ts        # Chat functionality
+│   └── user.service.ts        # User management
+└── providers/      # React context providers
+```
+
+## Authentication Flow
+
+1. User registers with email/password
+2. AWS Cognito handles verification
+3. Upon login, a unique user hash is generated
+4. User data is stored in Azure SQL Database
+5. Chat sessions are linked to authenticated users
+
+## Technology Stack
+
+- **Frontend**: Next.js, React, TailwindCSS
+- **Authentication**: AWS Cognito
+- **AI Services**: Azure OpenAI
+- **Database**: Azure SQL Database
+- **API Layer**: Next.js API Routes
+- **State Management**: React Context
+- **Styling**: TailwindCSS + Material UI
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
