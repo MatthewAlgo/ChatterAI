@@ -13,13 +13,16 @@ ChatterAI is a modern web application that combines AWS Cognito authentication w
 ## Prerequisites
 
 - Node.js 18.x or higher
+- Python 3.10 or higher
 - AWS Account with Cognito User Pool
 - Azure Account with OpenAI and SQL Database services
 - npm or yarn package manager
+- pip (Python package manager)
+- Microsoft ODBC Driver for SQL Server
 
 ## Environment Variables
 
-Create a `.env.local` file in the root directory with:
+### Frontend (.env.local)
 
 ```bash
 # AWS Cognito
@@ -39,21 +42,54 @@ AZURE_DB_USER=your-username
 AZURE_DB_PASSWORD=your-password
 ```
 
+### Backend (.env)
+
+```bash
+# Flask Configuration
+FLASK_DEBUG=True
+FLASK_SECRET_KEY=your-secret-key-here
+FLASK_HOST=0.0.0.0
+FLASK_PORT=3000
+CORS_ORIGINS=http://localhost:3001,http://localhost:3000
+
+# Database Configuration
+AZURE_DB_SERVER=your-server.database.windows.net
+AZURE_DB_NAME=your-database
+AZURE_DB_USER=your-username
+AZURE_DB_PASSWORD=your-password
+DB_POOL_SIZE=5
+DB_POOL_TIMEOUT=30
+
+# Azure OpenAI Configuration
+NEXT_PUBLIC_AZURE_OPENAI_API_KEY=your-api-key
+NEXT_PUBLIC_AZURE_OPENAI_ENDPOINT=your-endpoint
+NEXT_PUBLIC_AZURE_OPENAI_DEPLOYMENT_NAME=your-deployment-name
+```
+
 ## Installation
 
+### Frontend Setup
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/chatter-ai.git
 
-# Install dependencies
+# Install frontend dependencies
 cd chatter-ai
 npm install
+```
 
-# Initialize the database
-npm run db:init
+### Backend Setup
+```bash
+# Setup Python virtual environment
+cd python_backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Start the development server
-npm run dev
+# Install backend dependencies
+pip install -r requirements.txt
+
+# Start the Flask server
+python app.py
 ```
 
 ## Database Management
@@ -69,16 +105,20 @@ npm run db:drop
 ## Project Structure
 
 ```
-src/
-├── app/             # Next.js app router
-├── components/      # React components
-├── config/         # Configuration files
-├── services/       # Service layer
-│   ├── auth.service.ts        # AWS Cognito auth
-│   ├── azure-openai.service.ts # Azure OpenAI integration
-│   ├── chat.service.ts        # Chat functionality
-│   └── user.service.ts        # User management
-└── providers/      # React context providers
+chatter-ai/
+├── src/                    # Frontend source code
+│   ├── app/               # Next.js app router
+│   ├── components/        # React components
+│   └── ...               # Other frontend directories
+│
+├── python_backend/        # Flask backend
+│   ├── config/           # Backend configuration
+│   ├── routes/           # API routes
+│   ├── services/         # Service layer
+│   ├── middleware/       # Request middleware
+│   ├── utils/           # Utility functions
+│   ├── app.py           # Flask application entry
+│   └── requirements.txt  # Python dependencies
 ```
 
 ## Authentication Flow
@@ -98,6 +138,29 @@ src/
 - **API Layer**: Next.js API Routes
 - **State Management**: React Context
 - **Styling**: TailwindCSS + Material UI
+
+## Development
+
+1. Start the Flask backend:
+```bash
+cd python_backend
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+python app.py
+```
+
+2. Start the Next.js frontend:
+```bash
+cd chatter-ai
+npm run dev
+```
+
+## API Endpoints
+
+### Chat Routes
+- `POST /api/chat/chat` - Create new chat
+- `GET /api/chat/chat/<chat_id>` - Get chat by ID
+- `POST /api/chat/chat/<chat_id>/message` - Add message to chat
+- `POST /api/chat` - Get AI completion
 
 ## Contributing
 
