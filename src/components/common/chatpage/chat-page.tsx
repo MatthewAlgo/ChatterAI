@@ -9,13 +9,7 @@ import { openAIService } from '@/services/azure-openai.service';
 import { chatService } from '@/services/chat.service';
 import { ChatMessage } from '@/services/types/chat.types';
 import { useDatabase } from '../../../components/providers/database-provider';
-
-interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'gpt';
-  timestamp: string;
-}
+import { Message } from '../../../services/types/chat.types';
 
 interface ChatPageProps {
   chatId?: string;
@@ -62,6 +56,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ chatId, initialMessages = [] }) => 
   const { isConnected, onConnected } = useDatabase();
   const [showBanner, setShowBanner] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -102,19 +97,53 @@ const ChatPage: React.FC<ChatPageProps> = ({ chatId, initialMessages = [] }) => 
     }
   }, [isConnected, loadUserChats]);
 
+  useEffect(() => {
+    const loadChats = async () => {
+      try {
+        setLoading(true);
+        const chats = await chatDatabaseService.getUserChats(userAttributes?.sub);
+        setChats(chats || []);
+        if (chats.length === 0) {
+          setShowBanner(true);
+          setTimeout(() => setShowBanner(false), 3000);
+        }
+      } catch (error) {
+        console.error('Failed to load chats:', error);
+        setChats([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isConnected && userAttributes?.sub) {
+      loadChats();
+    }
+  }, [userAttributes?.sub, isConnected]);
+
   const loadChatHistory = async () => {
-    if (chatId) {
+    if (!chatId) return;
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
       const history = await chatService.getChatHistory(chatId);
-      setMessages(history.map(msg => ({
-        id: msg.convoId,
-        content: msg.content,
-        sender: msg.sender,
-        timestamp: msg.timestamp instanceof Date 
-          ? msg.timestamp.toISOString()
-          : new Date(msg.timestamp).toISOString()
-      })));
+      setMessages(history); // Now types match correctly
+      
+    } catch (error) {
+      console.error('Failed to load chat history:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load chat history');
+      setMessages([]);
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (chatId) {
+      loadChatHistory();
+    }
+  }, [chatId]);
 
   const handleNewChat = async () => {
     if (userAttributes?.sub) {
@@ -134,57 +163,56 @@ const ChatPage: React.FC<ChatPageProps> = ({ chatId, initialMessages = [] }) => 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !chatId) return;
-    setError(null); // Clear any existing errors
+    setError(null);
 
     const userMessage: Message = {
-      id: Date.now().toString(),
-      content: newMessage,
-      sender: 'user',
-      timestamp: new Date().toISOString(),
+        id: Date.now().toString(),
+        content: newMessage,
+        sender: 'user',
+        timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    let tempMessages = [...messages, userMessage];
+    setMessages(tempMessages);
     setNewMessage('');
     setIsLoading(true);
 
     try {
-      await chatService.saveMessage(chatId, userMessage.content, 'user');
+        // Save user message first
+        await chatService.saveMessage(chatId, userMessage.content, 'user');
 
-      const messageHistory: ChatMessage[] = messages.map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      }));
+        // Get AI response
+        const response = await openAIService.getChatCompletion([userMessage], chatId);
 
-      const fullContext: ChatMessage[] = [
-        { role: 'system', content: 'You are a helpful AI assistant.' },
-        ...messageHistory,
-        { role: 'user', content: userMessage.content }
-      ];
+        if (response) {
+            const aiMessage: Message = {
+                id: Date.now().toString(),
+                content: response,
+                sender: 'gpt',
+                timestamp: new Date(),
+            };
 
-      const response = await openAIService.getChatCompletion(fullContext, chatId);
-
-      if (response) {
-        const aiMessage: Message = {
-          id: Date.now().toString(),
-          content: response,
-          sender: 'gpt',
-          timestamp: new Date().toISOString(),
-        };
-
-        setMessages(prev => [...prev, aiMessage]);
-        await chatService.saveMessage(chatId, response, 'gpt');
-      }
+            // Save AI message to database and update UI atomically
+            await chatService.saveMessage(chatId, response, 'gpt');
+            setMessages(prev => [...prev, aiMessage]);
+        }
     } catch (error) {
-      console.error('Failed to get AI response:', error);
-      setError(error instanceof Error ? error.message : 'Failed to get AI response');
-      setMessages(prev => prev.slice(0, -1)); // Remove the failed message
+        const errorMessage = error instanceof Error 
+            ? error.message 
+            : 'An unexpected error occurred';
+        setError(errorMessage);
+        setMessages(messages); // Revert on error
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  };
+};
 
   if (!isAuthenticated) {
     return null;
+  }
+
+  if (loading) {
+    return <div>Loading chats...</div>;
   }
 
   return (
