@@ -1,34 +1,55 @@
 import { ChatMessage, OpenAIMessage } from './types/chat.types';
 
 export const openAIService = {
+    formatMessages(messages: ChatMessage[]): OpenAIMessage[] {
+        return messages.map(msg => ({
+            role: msg.sender === 'user' ? 'user' : 'assistant',
+            content: msg.content
+        }));
+    },
+
     async getChatCompletion(messages: ChatMessage[], chatId: string): Promise<string> {
         try {
-            const formattedMessages: OpenAIMessage[] = messages.map(msg => ({
-                role: msg.role || (msg.sender === 'user' ? 'user' : 'assistant'),
-                content: msg.content
-            }));
+            const formattedMessages = this.formatMessages(messages);
 
-            const response = await fetch('/api/chat', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/chat`, {
                 method: 'POST',
-                headers: {
+                headers: { 
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     messages: formattedMessages,
-                    chatId
+                    chatId,
+                    model: 'gpt-3.5-turbo'
                 }),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to get AI response');
+            const data = await response.json();
+
+            // Check for error status first
+            if (!response.ok || data.status === 'error') {
+                throw new Error(data.message || data.error || 'Failed to get AI response');
             }
 
-            const data = await response.json();
-            return data.content || '';
+            // Handle the specific response format we're receiving
+            if (data.data?.recordset?.[0]?.content) {
+                return data.data.recordset[0].content;
+            }
+
+            if (data.data?.content) {
+                return data.data.content;
+            }
+
+            // Log the actual response for debugging
+            console.debug('API Response:', JSON.stringify(data, null, 2));
+            
+            throw new Error('Could not extract content from API response');
+
         } catch (error) {
-            console.error('Azure OpenAI Error:', error);
-            throw error instanceof Error ? error : new Error('Failed to get AI response');
+            const errorMessage = error instanceof Error ? error.message : 'Failed to get AI response';
+            console.error('Azure OpenAI Error:', errorMessage);
+            throw new Error(errorMessage);
         }
     }
 };

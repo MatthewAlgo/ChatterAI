@@ -25,13 +25,20 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const connect = async () => {
     try {
-      const response = await fetch('/api/db');
-      if (!response.ok) throw new Error('Database connection failed');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/db`);
+      const data = await response.json();
+      
+      if (!response.ok || data.status === 'error') {
+        throw new Error(data.message || 'Database connection failed');
+      }
+      
       setIsConnected(true);
       showNotification('Database connected successfully', 'success');
       connectionCallbacks.forEach(callback => callback());
     } catch (error) {
-      showNotification('Database connection failed', 'error');
+      setIsConnected(false);
+      showNotification(error instanceof Error ? error.message : 'Database connection failed', 'error');
+      console.error('Database connection error:', error);
       throw error;
     }
   };
@@ -42,7 +49,7 @@ export const DatabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const executeQuery = async (query: string) => {
     try {
-      const result = await azureQueryService.executeQuery(query);
+      const result = await azureQueryService.executeSqlQuery(query);
       return result;
     } catch (error) {
       showNotification('Query execution failed', 'error');

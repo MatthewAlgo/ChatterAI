@@ -1,28 +1,36 @@
-export const azureQueryService = {
-    async executeQuery(query: string, params?: Record<string, any>) {
-        try {
-            console.log('Sending query to API:', query);
-            console.log('With params:', params);
+import { QueryResponse } from './types/chat.types';
 
-            const response = await fetch('/api/db', {
+export interface QueryParams {
+    [key: string]: string | number | boolean | undefined;
+}
+
+export const azureQueryService = {
+    async executeQuery<T>(
+        operationType: string,
+        query: string,
+        params?: QueryParams
+    ): Promise<QueryResponse<T>> {
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/db`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ query, params }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ operationType, query, params }),
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Database Error:', errorData);
-                throw new Error(`Query execution failed: ${errorData.error}`);
+                throw new Error(data.message || data.details || `HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
-            return result;
+            if (data.status === 'error') {
+                throw new Error(data.message || 'Database operation failed');
+            }
+
+            return data;
         } catch (error) {
-            console.error('Database Service Error:', error);
-            throw new Error(error instanceof Error ? error.message : 'Query execution failed');
+            const errorMessage = error instanceof Error ? error.message : 'Database query failed';
+            throw new Error(`Query execution failed: ${errorMessage}`);
         }
     }
 };
